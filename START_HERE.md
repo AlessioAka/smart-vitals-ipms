@@ -3,7 +3,7 @@
 ## What is already built (and tested here)
 - Simulator with on-purpose faults, edge node, cleaning pipeline, model comparison, API, clinician login and
   access control, per-patient thresholds, alerts with escalation, dashboard with trend charts.
-- 97 automated tests, all passing at hand-over; three notebooks that run end to end.
+- 101 automated tests, all passing at hand-over; three notebooks that run end to end.
 - Docker files and `docker-compose.yml` (**written but not run**: I had no Docker).
 - VS Code settings, launch configurations and tasks (`.vscode/`).
 

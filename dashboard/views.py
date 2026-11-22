@@ -11,7 +11,7 @@ Pages
 """
 import json
 import secrets
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from flask import (Blueprint, Response, abort, current_app, flash, g, jsonify, redirect,
@@ -26,8 +26,20 @@ from src import config, drift, rules
 
 bp = Blueprint("dashboard", __name__)
 
-CHART_WINDOWS = {60: "1 hour", 180: "3 hours", 360: "6 hours"}  # readings = minutes (one a minute)
+CHART_WINDOWS = {60: "1 hour", 180: "3 hours", 360: "6 hours"}  # minutes
 STATUS_ORDER = {"Critical": 0, "Warning": 1, "Normal": 2, "No data": 3}
+
+
+def in_window(readings: list, minutes: int) -> list:
+    """Keep only readings from the last `minutes` before the newest one (oldest first in, oldest first out).
+
+    The database query fetches at most one reading per minute of the window; this cut makes
+    "3 hours" mean three hours of time even when the sensor (or the computer) was off for a while.
+    """
+    if not readings:
+        return []
+    start = (datetime.fromisoformat(readings[-1]["ts"]) - timedelta(minutes=minutes)).isoformat()
+    return [r for r in readings if r["ts"] >= start]
 
 
 # ------------------------------------------------------------------ CSRF
@@ -227,8 +239,8 @@ def chart(patient_id):
     conn = get_conn()
     window = request.args.get("window", 180, type=int)
     window = window if window in CHART_WINDOWS else 180
-    png = patient_chart(db.history(conn, patient_id, window), db.get_thresholds(conn, patient_id),
-                        bool(patient["has_diabetes"]))
+    png = patient_chart(in_window(db.history(conn, patient_id, window), window),
+                        db.get_thresholds(conn, patient_id), bool(patient["has_diabetes"]))
     return Response(png, mimetype="image/png", headers={"Cache-Control": "no-store"})
 
 

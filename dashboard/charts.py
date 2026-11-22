@@ -35,6 +35,22 @@ PANELS = [
 ]
 
 
+GAP_MINUTES = 2  # one reading a minute: a longer silence means readings are missing
+
+
+def with_gaps(times: list, values: list) -> tuple:
+    """Insert a break (NaN) wherever readings are missing, so matplotlib draws a GAP
+    instead of a straight line across it. Missing data is shown, not hidden (Week 5)."""
+    xs, ys = [], []
+    for i, (t, v) in enumerate(zip(times, values)):
+        if i and (t - times[i - 1]).total_seconds() > GAP_MINUTES * 60:
+            xs.append(times[i - 1] + (t - times[i - 1]) / 2)
+            ys.append(float("nan"))
+        xs.append(t)
+        ys.append(float("nan") if v is None else v)  # a missing vital is a gap too
+    return xs, ys
+
+
 def patient_chart(readings: list, thresholds: dict, has_diabetes: bool) -> bytes:
     """PNG bytes: one small panel per vital sign."""
     panels = [p for p in PANELS if p[0] != "glucose" or has_diabetes]
@@ -45,10 +61,9 @@ def patient_chart(readings: list, thresholds: dict, has_diabetes: bool) -> bytes
 
     for ax, (key, title, cols) in zip(axes, panels):
         for i, col in enumerate(cols):
-            pts = [(t, r[col]) for t, r in zip(times, readings) if r[col] is not None]
-            if pts:
-                ax.plot(*zip(*pts), color=LINE if i == 0 else LINE_2, linewidth=1.6,
-                        label=col if len(cols) > 1 else None)
+            if any(r[col] is not None for r in readings):
+                ax.plot(*with_gaps(times, [r[col] for r in readings]), color=LINE if i == 0 else LINE_2,
+                        linewidth=1.6, label=col if len(cols) > 1 else None)
         for name, limit in thresholds.items():
             vital, side = name.rsplit("_", 1)
             if vital in cols:
