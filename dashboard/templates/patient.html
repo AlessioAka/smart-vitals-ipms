@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}{{ patient['patient_id'] }} · Smart Vitals{% endblock %}
+{% block content %}
+{% set names = {'heart_rate': 'Heart rate', 'spo2': 'SpO2', 'systolic': 'Systolic BP', 'diastolic': 'Diastolic BP',
+                'temperature': 'Temperature', 'glucose': 'Glucose'} %}
+{% set shown = ['heart_rate', 'spo2', 'systolic', 'diastolic', 'temperature'] + (['glucose'] if patient['has_diabetes'] else []) %}
+<p style="margin:0 0 10px"><a href="{{ url_for('dashboard.overview') }}">&larr; My patients</a></p>
+
+<div class="page-head">
+  <div>
+    <h1>Patient {{ patient['patient_id'] }}
+      {% if latest %}<span class="pill {{ latest.status }}" style="vertical-align:middle;margin-left:6px">{{ latest.status }}</span>{% endif %}</h1>
+    <p class="muted">Age {{ patient['age'] }} · <span class="pill plain risk-{{ patient['risk_group'] }}">{{ patient['risk_group'] }} risk</span>
+      · conditions: {{ conditions|join(', ') or 'none' }} · assigned to {{ patient['clinician_id'] }}</p>
+  </div>
+  <div class="muted" style="text-align:right">
+    {% if latest %}Last reading <strong>{{ latest.ts[11:16] }}</strong>{% else %}No readings yet{% endif %}
+    {% if signal_lost %}<div class="lost">⚠ Signal lost: no reading for {{ gap }} min</div>{% endif %}
+  </div>
+</div>
+
+{# ---- latest vitals. The coloured top edge shows how many early-warning points each vital scores
+       (src/rules.py): this is the "explain each alert" extra feature in visual form. #}
+<div class="card">
+  <div class="card-head"><h2>Latest vitals</h2><span class="tiny">edge colour = points this vital adds to the warning score</span></div>
+  <div class="vitals">
+    {% for v in shown %}
+    {% set p = points.get(v) %}
+    <div class="vital {{ 'none' if (latest is none or latest[v] is none) else 'p' ~ (p or 0) }}">
+      <div class="k">{{ names[v] }}</div>
+      <div class="v">{{ (latest[v] if latest else none)|vital(v) }} <span class="u">{{ units[v] }}</span></div>
+      <div class="tiny">{% if p %}+{{ p }} point{{ 's' if p > 1 }}{% elif latest and latest[v] is not none %}in range{% else %}no value{% endif %}
+        {% set lo, hi = thresholds.get(v ~ '_low'), thresholds.get(v ~ '_high') %}
+        {% if lo is not none or hi is not none %} · your limits {{ lo if lo is not none else '–' }} to {{ hi if hi is not none else '–' }}{% endif %}</div>
+    </div>
+    {% endfor %}
+  </div>
+  {% if latest and latest.reasons %}<p class="muted" style="margin:10px 0 0">Why this status: {{ latest.reasons|join(' · ') }}</p>{% endif %}
+</div>
+
+{# ---- trend chart (R8) #}
+<div class="card">
+  <div class="card-head"><h2>Trends</h2>
+    <span class="seg">{% for n, label in windows.items() %}<a class="{{ 'on' if n == window }}" href="{{ url_for('dashboard.patient_page', patient_id=patient['patient_id'], window=n) }}">{{ label }}</a>{% endfor %}</span></div>
+  <img class="chart" src="{{ url_for('dashboard.chart', patient_id=patient['patient_id'], window=window) }}"
+       alt="Vital-sign trends over the last {{ windows[window] }} for patient {{ patient['patient_id'] }}">
+  <p class="tiny" style="margin:6px 0 0">Red bands mark Critical readings · dashed lines are your limits for this patient · gaps in a line are missing readings (shown, not hidden).</p>
+</div>
+
+<div class="cols">
+<div>
+  {# ---- readings table (R6: history) #}
+  <div class="card">
+    <div class="card-head"><h2>Latest readings</h2><span class="tiny">newest first · last 40</span></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Time</th><th>HR</th><th>SpO2</th><th>BP</th><th>Temp</th>{% if patient['has_diabetes'] %}<th>Gluc.</th>{% endif %}<th>Status</th><th></th></tr></thead>
+      <tbody>
+      {% for r in readings %}
+      <tr class="{{ 'row-crit' if r.status == 'Critical' else ('row-warn' if r.status == 'Warning') }}" title="{{ r.reasons|join('; ') }}">
+        <td class="num">{{ r.ts[11:16] }}</td>
+        <td class="num">{{ r.heart_rate|vital('heart_rate') }}</td><td class="num">{{ r.spo2|vital('spo2') }}</td>
+        <td class="num">{{ r.systolic|vital('systolic') }}/{{ r.diastolic|vital('diastolic') }}</td>
+        <td class="num">{{ r.temperature|vital('temperature') }}</td>
+        {% if patient['has_diabetes'] %}<td class="num">{{ r.glucose|vital('glucose') }}</td>{% endif %}
+        <td><span class="pill {{ r.status }}">{{ r.status }}</span></td>
+        {# A late reading arrived long after it was measured: stored and shown, but it did not page anyone (A9) #}
+        <td>{% if r.late %}<span class="tag" title="Arrived late: stored, but did not page the clinician">late</span>{% endif %}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="8" class="muted">No readings yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    <p class="tiny" style="margin:8px 0 0">A dash means the sensor sent no value (or an impossible one, removed at the edge). Hover a row to see why it got its status.</p>
+  </div>
+</div>
+
+<div>
+  {# ---- alerts for this patient (R4, R6) #}
+  <div class="card">
+    <div class="card-head"><h2>Alerts</h2><span class="tiny">{{ alerts|length }} in total</span></div>
+    {% for a in alerts %}
+    <div class="alert-item {{ 'ack' if a.acknowledged else ('esc' if a.escalated) }}">
+      <div class="alert-top">
+        <span class="num"><strong>{{ a.ts[11:16] }}</strong> · <span class="pill {{ a.status }}">{{ a.status }}</span></span>
+        {% if a.acknowledged %}<span class="tag ack">Acknowledged</span>{% elif a.escalated %}<span class="tag esc">Escalated</span>{% else %}<span class="tag open">Open</span>{% endif %}
+      </div>
+      {% if a.reasons %}<ul>{% for s in a.reasons[:4] %}<li>{{ s }}</li>{% endfor %}</ul>{% endif %}
+      <div class="alert-top" style="margin-top:6px">
+        <span class="tiny">{% if a.repeat_count > 1 %}repeated {{ a.repeat_count }}× until {{ a.last_ts[11:16] }}{% else %}single reading{% endif %}</span>
+        {% if not a.acknowledged %}
+        <form method="post" action="{{ url_for('dashboard.ack', alert_id=a.alert_id) }}" style="margin:0">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <input type="hidden" name="next" value="{{ url_for('dashboard.patient_page', patient_id=patient['patient_id']) }}">
+          <button type="submit" class="small">Acknowledge</button>
+        </form>{% endif %}
+      </div>
+    </div>
+    {% else %}
+    <p class="muted">No alerts for this patient.</p>
+    {% endfor %}
+  </div>
+
+  {# ---- per-patient thresholds (R10) #}
+  <div class="card" id="thresholds">
+    <h2>Alert thresholds</h2>
+    <p class="muted" style="margin-top:0">Your own limits for this patient. A reading outside them raises its status by one level
+      (Normal → Warning → Critical); they can never lower the model's status. Leave a box empty for no limit.</p>
+    <form method="post" action="{{ url_for('dashboard.save_thresholds', patient_id=patient['patient_id']) }}">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div class="grid">
+        {% for f in fields %}{% set vital, side = f.rsplit('_', 1) %}{% if patient['has_diabetes'] or vital != 'glucose' %}
+        <label>{{ names[vital] }} · {{ side }} <span class="tiny">({{ units[vital] }})</span>
+          <input type="number" step="any" name="{{ f }}" value="{{ thresholds.get(f, '') }}" placeholder="no limit"></label>
+        {% endif %}{% endfor %}
+      </div>
+      <p style="margin-bottom:0"><button type="submit">Save thresholds</button></p>
+    </form>
+  </div>
+</div>
+</div>
+{% endblock %}

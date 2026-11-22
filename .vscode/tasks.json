@@ -1,0 +1,12 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {"label": "1. Make data", "type": "shell", "command": "${command:python.interpreterPath} -m simulator.make_dataset"},
+    {"label": "2. Train model", "type": "shell", "command": "${command:python.interpreterPath} -m src.train"},
+    {"label": "3. Run tests", "type": "shell", "command": "${command:python.interpreterPath} tools/run_tests.py", "group": "test"},
+    {"label": "4. Run the API (port 8000)", "type": "shell", "command": "${command:python.interpreterPath} -m app.main", "isBackground": true, "problemMatcher": []},
+    {"label": "5. Run the simulator", "type": "shell", "command": "${command:python.interpreterPath} -m simulator.run_simulator", "problemMatcher": []},
+    {"label": "Docker: up", "type": "shell", "command": "docker compose up --build"},
+    {"label": "Docker: down", "type": "shell", "command": "docker compose down"}
+  ]
+}

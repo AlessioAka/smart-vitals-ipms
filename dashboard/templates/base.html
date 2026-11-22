@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Smart Vitals{% endblock %}</title>
+{% block head %}{% endblock %}
+{#
+  One self-contained stylesheet: no CDN, no external fonts, so the dashboard also works on a
+  hospital network with no internet. Status is ALWAYS shown as a word as well as a colour
+  (Critical / Warning / Normal), so it is readable for colour-blind users and in black-and-white print.
+#}
+<style>
+  :root {
+    --ink:#14202b; --muted:#5b6670; --faint:#8a949c; --line:#dde3e8; --bg:#f3f5f8; --card:#fff;
+    --brand:#0f4c81; --brand-2:#1a6fb5; --brand-soft:#e7f0f9;
+    --crit:#b42318; --crit-bg:#fdecea; --warn:#8a5300; --warn-bg:#fff4de; --ok:#1e6b3a; --ok-bg:#e8f5ec;
+    --radius:10px; --shadow:0 1px 2px rgba(16,24,40,.06), 0 1px 3px rgba(16,24,40,.08);
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font:15px/1.5 -apple-system, "Segoe UI", system-ui, Roboto, sans-serif; color:var(--ink); background:var(--bg); }
+  a { color:var(--brand-2); }
+  h1 { font-size:22px; margin:0; } h2 { font-size:17px; margin:0 0 10px; } h3 { font-size:15px; margin:0 0 8px; }
+
+  /* ---- top bar */
+  .topbar { background:linear-gradient(90deg, #0b3a63, var(--brand)); color:#fff; }
+  .topbar .inner { max-width:1180px; margin:0 auto; padding:10px 20px; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+  .brand { display:flex; align-items:center; gap:10px; color:#fff; text-decoration:none; }
+  .brand svg { flex:none; }
+  .brand strong { font-size:17px; letter-spacing:.2px; display:block; line-height:1.2; }
+  .brand span { font-size:12px; opacity:.8; display:block; }
+  .who { display:flex; align-items:center; gap:12px; font-size:14px; }
+  .who .badge { background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.25); padding:3px 10px; border-radius:20px; }
+  .who form { margin:0; }
+  .who button { background:transparent; border:1px solid rgba(255,255,255,.5); color:#fff; padding:4px 12px; }
+  .who button:hover { background:rgba(255,255,255,.12); }
+  .banner { background:#fff8e6; border-bottom:1px solid #f1dfb0; color:#6b4b00; font-size:13px; text-align:center; padding:5px 12px; }
+
+  /* ---- layout */
+  main { max-width:1180px; margin:0 auto; padding:20px; }
+  .page-head { display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap; margin-bottom:16px; }
+  .page-head p { margin:4px 0 0; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); padding:16px 18px; margin-bottom:18px; }
+  .card-head { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+  .card-head h2, .card-head h3 { margin:0; }
+  .cols { display:grid; grid-template-columns: minmax(0,2fr) minmax(0,1fr); gap:18px; }
+  @media (max-width:900px) { .cols { grid-template-columns:1fr; } }
+  .muted { color:var(--muted); font-size:13px; }
+  .tiny { color:var(--faint); font-size:12px; }
+
+  /* ---- KPI tiles */
+  .kpis { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:12px; margin-bottom:18px; }
+  .kpi { background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:12px 14px; box-shadow:var(--shadow); border-left:4px solid var(--line); }
+  .kpi .n { font-size:26px; font-weight:700; line-height:1.1; }
+  .kpi .l { font-size:13px; color:var(--muted); }
+  .kpi.crit { border-left-color:var(--crit); } .kpi.crit .n { color:var(--crit); }
+  .kpi.warn { border-left-color:var(--warn); } .kpi.warn .n { color:var(--warn); }
+  .kpi.info { border-left-color:var(--brand-2); }
+
+  /* ---- tables */
+  .table-wrap { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; }
+  th, td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); font-size:14px; vertical-align:middle; }
+  th { color:var(--muted); font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:.4px; background:#fafbfc; }
+  tr.row-crit td:first-child { box-shadow:inset 3px 0 0 var(--crit); }
+  tr.row-warn td:first-child { box-shadow:inset 3px 0 0 var(--warn); }
+  tbody tr:hover { background:#f8fafc; }
+  .num { font-variant-numeric:tabular-nums; white-space:nowrap; }
+
+  /* ---- pills (status is a word AND a colour) */
+  .pill { display:inline-flex; align-items:center; gap:5px; padding:1px 9px; border-radius:20px; font-size:12px; font-weight:700; border:1px solid; white-space:nowrap; }
+  .pill::before { content:""; width:7px; height:7px; border-radius:50%; background:currentColor; }
+  .Critical { color:var(--crit); border-color:#f3b8b2; background:var(--crit-bg); }
+  .Warning  { color:var(--warn); border-color:#f0d39a; background:var(--warn-bg); }
+  .Normal   { color:var(--ok);   border-color:#b5dcc2; background:var(--ok-bg); }
+  .nodata   { color:var(--muted); border-color:var(--line); background:#f4f5f7; }
+  .pill.plain::before { display:none; }
+  .risk-High { color:var(--crit); border-color:#f3b8b2; background:#fff; }
+  .risk-Medium { color:var(--warn); border-color:#f0d39a; background:#fff; }
+  .risk-Low { color:var(--ok); border-color:#b5dcc2; background:#fff; }
+
+  /* ---- alerts */
+  .alert-item { border:1px solid var(--line); border-left:4px solid var(--crit); border-radius:8px; padding:10px 12px; margin-bottom:10px; background:#fff; }
+  .alert-item.ack { border-left-color:var(--line); opacity:.75; }
+  .alert-item.esc { background:var(--crit-bg); }
+  .alert-top { display:flex; justify-content:space-between; gap:10px; align-items:center; flex-wrap:wrap; }
+  .alert-item ul { margin:6px 0 0; padding-left:18px; color:var(--muted); font-size:13px; }
+  .tag { display:inline-block; font-size:11px; font-weight:700; padding:1px 7px; border-radius:4px; background:#eef1f4; color:var(--muted); text-transform:uppercase; letter-spacing:.3px; }
+  .tag.esc { background:var(--crit); color:#fff; }
+  .tag.open { background:#fde7c7; color:#7a4a00; }
+  .tag.ack { background:var(--ok-bg); color:var(--ok); }
+
+  /* ---- vitals tiles (patient page) */
+  .vitals { display:grid; grid-template-columns:repeat(auto-fit, minmax(140px,1fr)); gap:10px; }
+  .vital { border:1px solid var(--line); border-radius:8px; padding:10px 12px; background:#fff; border-top:4px solid var(--ok); }
+  .vital .v { font-size:24px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .vital .u { font-size:13px; color:var(--muted); font-weight:500; }
+  .vital .k { font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; }
+  .vital.p1, .vital.p2 { border-top-color:var(--warn); }
+  .vital.p3 { border-top-color:var(--crit); background:var(--crit-bg); }
+  .vital.none { border-top-color:var(--line); }
+
+  /* ---- forms and buttons */
+  button, .btn { background:var(--brand); color:#fff; border:0; border-radius:6px; padding:7px 14px; cursor:pointer; font-size:14px; text-decoration:none; display:inline-block; }
+  button:hover, .btn:hover { background:var(--brand-2); }
+  button.small { padding:4px 10px; font-size:13px; }
+  button.secondary, .btn.secondary { background:#fff; color:var(--brand); border:1px solid var(--line); }
+  input[type=text], input[type=password], input[type=number] { padding:7px 9px; border:1px solid #c9d1d8; border-radius:6px; width:100%; font-size:14px; background:#fff; }
+  input:focus, button:focus-visible, a:focus-visible { outline:3px solid #9cc3e8; outline-offset:1px; }
+  label { font-size:13px; color:var(--muted); display:block; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:12px; }
+  .seg a { display:inline-block; padding:3px 10px; border:1px solid var(--line); text-decoration:none; color:var(--muted); font-size:13px; margin-left:-1px; background:#fff; }
+  .seg a:first-child { border-radius:6px 0 0 6px; } .seg a:last-child { border-radius:0 6px 6px 0; }
+  .seg a.on { background:var(--brand-soft); color:var(--brand); font-weight:700; border-color:#b9d3ec; }
+
+  /* ---- messages */
+  .flash { padding:9px 14px; border-radius:8px; margin-bottom:12px; font-size:14px; border:1px solid; }
+  .flash.ok { background:var(--ok-bg); border-color:#b5dcc2; color:var(--ok); }
+  .flash.error { background:var(--crit-bg); border-color:#f3b8b2; color:var(--crit); }
+  .flash.message { background:var(--brand-soft); border-color:#b9d3ec; color:var(--brand); }
+  .lost { color:var(--warn); font-weight:600; font-size:13px; }
+  img.chart { width:100%; height:auto; border-radius:6px; }
+  footer { max-width:1180px; margin:0 auto; padding:6px 20px 30px; color:var(--faint); font-size:12px; }
+</style>
+</head>
+<body>
+<div class="topbar"><div class="inner">
+  <a class="brand" href="{{ url_for('dashboard.index') }}">
+    {# Logo: a heart-rate trace in a rounded square (inline SVG: no image files needed) #}
+    <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true">
+      <rect width="34" height="34" rx="8" fill="#fff" fill-opacity=".14"/>
+      <polyline points="4,18 11,18 14,10 18,25 21,15 23,18 30,18" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <span><strong>Smart Vitals</strong><span>MedLink Community Health Trust · Remote monitoring</span></span>
+  </a>
+  {% if session.get('clinician_id') %}
+  <div class="who">
+    <span class="badge">Clinician {{ session['clinician_id'] }}</span>
+    <form method="post" action="{{ url_for('dashboard.logout') }}">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <button type="submit" class="small">Log out</button>
+    </form>
+  </div>
+  {% endif %}
+</div></div>
+<div class="banner">Prototype for teaching. All patients and readings are <strong>simulated</strong>; no real patient data. Not a medical device.</div>
+<main>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, m in messages %}<div class="flash {{ category }}" role="status">{{ m }}</div>{% endfor %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+</main>
+<footer>Smart Vitals IPMS · CMS22301 prototype · times are on the simulated clock</footer>
+</body>
+</html>

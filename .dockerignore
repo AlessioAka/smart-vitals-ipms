@@ -1,0 +1,11 @@
+.git
+.venv
+.env
+__pycache__
+*.pyc
+notebooks
+docs
+tests
+tools
+data/smart_vitals.db
+data/simulated_readings.csv

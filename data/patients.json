@@ -1,0 +1,195 @@
+[
+  {
+    "patient_id": "P001",
+    "age": 76,
+    "conditions": [
+      "arrhythmia",
+      "diabetes"
+    ],
+    "risk_group": "High",
+    "has_diabetes": true,
+    "clinician_id": "C01"
+  },
+  {
+    "patient_id": "P002",
+    "age": 37,
+    "conditions": [],
+    "risk_group": "Low",
+    "has_diabetes": false,
+    "clinician_id": "C02"
+  },
+  {
+    "patient_id": "P003",
+    "age": 61,
+    "conditions": [
+      "arrhythmia",
+      "hypertension"
+    ],
+    "risk_group": "Medium",
+    "has_diabetes": false,
+    "clinician_id": "C03"
+  },
+  {
+    "patient_id": "P004",
+    "age": 79,
+    "conditions": [
+      "diabetes",
+      "hypertension"
+    ],
+    "risk_group": "High",
+    "has_diabetes": true,
+    "clinician_id": "C04"
+  },
+  {
+    "patient_id": "P005",
+    "age": 73,
+    "conditions": [
+      "hypertension"
+    ],
+    "risk_group": "Medium",
+    "has_diabetes": false,
+    "clinician_id": "C01"
+  },
+  {
+    "patient_id": "P006",
+    "age": 60,
+    "conditions": [
+      "hypertension"
+    ],
+    "risk_group": "Low",
+    "has_diabetes": false,
+    "clinician_id": "C02"
+  },
+  {
+    "patient_id": "P007",
+    "age": 62,
+    "conditions": [
+      "diabetes"
+    ],
+    "risk_group": "Low",
+    "has_diabetes": true,
+    "clinician_id": "C03"
+  },
+  {
+    "patient_id": "P008",
+    "age": 53,
+    "conditions": [
+      "arrhythmia",
+      "diabetes"
+    ],
+    "risk_group": "Medium",
+    "has_diabetes": true,
+    "clinician_id": "C04"
+  },
+  {
+    "patient_id": "P009",
+    "age": 88,
+    "conditions": [],
+    "risk_group": "Medium",
+    "has_diabetes": false,
+    "clinician_id": "C01"
+  },
+  {
+    "patient_id": "P010",
+    "age": 81,
+    "conditions": [],
+    "risk_group": "Medium",
+    "has_diabetes": false,
+    "clinician_id": "C02"
+  },
+  {
+    "patient_id": "P011",
+    "age": 68,
+    "conditions": [],
+    "risk_group": "Low",
+    "has_diabetes": false,
+    "clinician_id": "C03"
+  },
+  {
+    "patient_id": "P012",
+    "age": 42,
+    "conditions": [],
+    "risk_group": "Low",
+    "has_diabetes": false,
+    "clinician_id": "C04"
+  },
+  {
+    "patient_id": "P013",
+    "age": 78,
+    "conditions": [
+      "diabetes"
+    ],
+    "risk_group": "Medium",
+    "has_diabetes": true,
+    "clinician_id": "C01"
+  },
+  {
+    "patient_id": "P014",
+    "age": 49,
+    "conditions": [
+      "arrhythmia",
+      "diabetes"
+    ],
+    "risk_group": "Medium",
+    "has_diabetes": true,
+    "clinician_id": "C02"
+  },
+  {
+    "patient_id": "P015",
+    "age": 61,
+    "conditions": [],
+    "risk_group": "Low",
+    "has_diabetes": false,
+    "clinician_id": "C03"
+  },
+  {
+    "patient_id": "P016",
+    "age": 40,
+    "conditions": [],
+    "risk_group": "Low",
+    "has_diabetes": false,
+    "clinician_id": "C04"
+  },
+  {
+    "patient_id": "P017",
+    "age": 73,
+    "conditions": [
+      "arrhythmia",
+      "hypertension"
+    ],
+    "risk_group": "High",
+    "has_diabetes": false,
+    "clinician_id": "C01"
+  },
+  {
+    "patient_id": "P018",
+    "age": 54,
+    "conditions": [],
+    "risk_group": "Low",
+    "has_diabetes": false,
+    "clinician_id": "C02"
+  },
+  {
+    "patient_id": "P019",
+    "age": 49,
+    "conditions": [
+      "diabetes",
+      "hypertension"
+    ],
+    "risk_group": "Medium",
+    "has_diabetes": true,
+    "clinician_id": "C03"
+  },
+  {
+    "patient_id": "P020",
+    "age": 73,
+    "conditions": [
+      "arrhythmia",
+      "diabetes",
+      "hypertension"
+    ],
+    "risk_group": "High",
+    "has_diabetes": true,
+    "clinician_id": "C04"
+  }
+]

@@ -1,0 +1,26 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run the API (port 8000)",
+      "type": "debugpy", "request": "launch", "module": "app.main",
+      "env": {"PYTHONPATH": "${workspaceFolder}"}, "envFile": "${workspaceFolder}/.env",
+      "justMyCode": true
+    },
+    {
+      "name": "Run the simulator (150 min, faults on)",
+      "type": "debugpy", "request": "launch", "module": "simulator.run_simulator",
+      "env": {"PYTHONPATH": "${workspaceFolder}", "MINUTES": "150"}, "envFile": "${workspaceFolder}/.env"
+    },
+    {
+      "name": "Train the model",
+      "type": "debugpy", "request": "launch", "module": "src.train",
+      "env": {"PYTHONPATH": "${workspaceFolder}"}
+    },
+    {
+      "name": "Run all tests (no pytest needed)",
+      "type": "debugpy", "request": "launch", "program": "${workspaceFolder}/tools/run_tests.py",
+      "env": {"PYTHONPATH": "${workspaceFolder}"}
+    }
+  ]
+}

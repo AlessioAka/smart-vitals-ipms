@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}My patients · Smart Vitals{% endblock %}
+{# The page reloads itself every 15 s, so new readings and alerts appear without clicking #}
+{% block head %}<meta http-equiv="refresh" content="15">{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>My patients</h1>
+    <p class="muted">Only patients assigned to {{ clinician }} are shown · most urgent first · refreshes every 15 seconds</p>
+  </div>
+  <div class="muted">Simulated time <strong>{{ now[11:16] if now else '–' }}</strong>{% if now %} · {{ now[:10] }}{% endif %}</div>
+</div>
+
+{# ---- KPI tiles: the five numbers a clinician needs at a glance #}
+<div class="kpis">
+  <div class="kpi info"><div class="n">{{ kpis.patients }}</div><div class="l">Patients</div></div>
+  <div class="kpi {{ 'crit' if kpis.critical }}"><div class="n">{{ kpis.critical }}</div><div class="l">Critical now</div></div>
+  <div class="kpi {{ 'warn' if kpis.warning }}"><div class="n">{{ kpis.warning }}</div><div class="l">Warning now</div></div>
+  <div class="kpi {{ 'crit' if kpis.escalated else ('warn' if kpis.open_alerts) }}"><div class="n">{{ kpis.open_alerts }}</div>
+    <div class="l">Open alerts{% if kpis.escalated %} · <strong>{{ kpis.escalated }} escalated</strong>{% endif %}</div></div>
+  <div class="kpi {{ 'warn' if kpis.signal_lost }}"><div class="n">{{ kpis.signal_lost }}</div><div class="l">Signal lost</div></div>
+</div>
+
+<div class="cols">
+<div>
+  {# ---- patient list (R5: only mine) #}
+  <div class="card">
+    <div class="card-head"><h2>Patients</h2><span class="tiny">Status = model output for the newest reading</span></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Patient</th><th>Status</th><th>Risk</th><th>HR</th><th>SpO2</th><th>BP</th><th>Temp</th><th>Last</th></tr></thead>
+      <tbody>
+      {% for r in rows %}
+      <tr class="{{ 'row-crit' if r.status == 'Critical' else ('row-warn' if r.status == 'Warning') }}">
+        <td><a href="{{ url_for('dashboard.patient_page', patient_id=r.patient_id) }}"><strong>{{ r.patient_id }}</strong></a>
+          <div class="tiny">{{ r.age }} y · {{ r.conditions }}</div></td>
+        <td><span class="pill {{ 'nodata' if r.status == 'No data' else r.status }}">{{ r.status }}</span>
+          {% if r.open_alert %}<div class="tiny" style="margin-top:3px">open alert</div>{% endif %}</td>
+        <td><span class="pill plain risk-{{ r.risk_group }}">{{ r.risk_group }}</span></td>
+        {% set l = r.last or {} %}
+        <td class="num">{{ l.heart_rate|vital('heart_rate') }}</td>
+        <td class="num">{{ l.spo2|vital('spo2') }}</td>
+        <td class="num">{{ l.systolic|vital('systolic') }}/{{ l.diastolic|vital('diastolic') }}</td>
+        <td class="num">{{ l.temperature|vital('temperature') }}</td>
+        <td class="num">{{ r.last_seen }}
+          {# R9: missing data is shown, not hidden #}
+          {% if r.signal_lost %}<div class="lost" title="No reading for {{ r.gap }} minutes">⚠ Signal lost {{ r.gap }} min</div>{% endif %}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="8" class="muted">No patients are assigned to you.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    <p class="tiny" style="margin:8px 0 0">Units: HR bpm · SpO2 % · BP mmHg · Temp °C</p>
+  </div>
+
+  {# ---- model health: which model, how good, is the data drifting? (extra feature) #}
+  <div class="card">
+    <div class="card-head"><h2>Model health</h2>
+      <span class="pill plain {{ {'stable':'Normal','watch':'Warning','shift':'Critical'}.get(health.drift_verdict, 'nodata') }}">Data drift: {{ health.drift_verdict }}</span></div>
+    <p class="muted" style="margin-top:0">Serving model: <strong>{{ health.name }}</strong>
+      {% if health.recall_critical is not none %} · finds {{ '%.1f'|format(health.recall_critical * 100) }} % of Critical readings in patients it never saw (test set){% endif %}</p>
+    {% if health.drift %}
+    <div class="table-wrap"><table>
+      <thead><tr><th>Vital</th><th>PSI</th><th>Verdict</th><th>Live values</th></tr></thead>
+      <tbody>{% for v, d in health.drift.items() %}
+        <tr><td>{{ v.replace('_', ' ') }} <span class="tiny">({{ health.units[v] }})</span></td>
+            <td class="num">{{ '%.3f'|format(d.psi) if d.psi is not none else '–' }}</td>
+            <td><span class="pill plain {{ {'stable':'Normal','watch':'Warning','shift':'Critical'}.get(d.verdict, 'nodata') }}">{{ d.verdict }}</span></td>
+            <td class="num">{{ d.n }}</td></tr>
+      {% endfor %}</tbody>
+    </table></div>
+    <p class="tiny" style="margin:8px 0 0">PSI compares the newest stored readings (all patients, aggregate only) with the training data.
+      Below 0.10 stable · 0.10–0.25 watch · above 0.25 shift: check the sensors, consider retraining.</p>
+    {% else %}
+    <p class="muted">No drift reference yet: run <code>python -m src.train</code>.</p>
+    {% endif %}
+  </div>
+</div>
+
+<div>
+  {# ---- alerts (R4) with acknowledge, repeat counter and escalation (alarm-fatigue control) #}
+  <div class="card">
+    <div class="card-head"><h2>Latest alerts</h2><span class="tiny">newest first</span></div>
+    {% for a in alerts %}
+    <div class="alert-item {{ 'ack' if a.acknowledged else ('esc' if a.escalated) }}">
+      <div class="alert-top">
+        <span><a href="{{ url_for('dashboard.patient_page', patient_id=a.patient_id) }}"><strong>{{ a.patient_id }}</strong></a>
+          · <span class="num">{{ a.ts[11:16] }}</span> · <span class="pill {{ a.status }}">{{ a.status }}</span></span>
+        {% if a.acknowledged %}<span class="tag ack">Acknowledged</span>
+        {% elif a.escalated %}<span class="tag esc">Escalated</span>
+        {% else %}<span class="tag open">Open</span>{% endif %}
+      </div>
+      <div class="tiny num" style="margin-top:4px">HR {{ a.vitals.get('heart_rate', '–') }} · SpO2 {{ a.vitals.get('spo2', '–') }} ·
+        BP {{ a.vitals.get('systolic', '–') }}/{{ a.vitals.get('diastolic', '–') }} · {{ a.vitals.get('temperature', '–') }} °C{% if 'glucose' in a.vitals %} · glucose {{ a.vitals['glucose'] }}{% endif %}</div>
+      {% if a.reasons %}<ul>{% for s in a.reasons[:4] %}<li>{{ s }}</li>{% endfor %}</ul>{% endif %}
+      <div class="alert-top" style="margin-top:6px">
+        <span class="tiny">{% if a.repeat_count > 1 %}repeated {{ a.repeat_count }}× · last {{ a.last_ts[11:16] }}{% else %}single reading{% endif %}</span>
+        {% if not a.acknowledged %}
+        <form method="post" action="{{ url_for('dashboard.ack', alert_id=a.alert_id) }}" style="margin:0">
+          <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="next" value="{{ url_for('dashboard.overview') }}">
+          <button type="submit" class="small">Acknowledge</button>
+        </form>{% endif %}
+      </div>
+    </div>
+    {% else %}
+    <p class="muted">No alerts. A Critical reading for one of your patients will appear here.</p>
+    {% endfor %}
+  </div>
+</div>
+</div>
+{% endblock %}

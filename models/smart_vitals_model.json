@@ -1,0 +1,67 @@
+{
+  "name": "random forest",
+  "saved_at": "2026-11-22T03:35:40+00:00",
+  "features": [
+    "heart_rate",
+    "spo2",
+    "systolic",
+    "diastolic",
+    "temperature",
+    "glucose",
+    "hr_mean5",
+    "spo2_mean5",
+    "sys_mean5",
+    "temp_mean5",
+    "hr_change5",
+    "spo2_change5",
+    "risk_code",
+    "is_diabetic"
+  ],
+  "labels": [
+    "Normal",
+    "Warning",
+    "Critical"
+  ],
+  "test_metrics": {
+    "accuracy": 0.9888459250446163,
+    "precision": {
+      "Normal": 0.997,
+      "Warning": 0.913,
+      "Critical": 0.944
+    },
+    "recall": {
+      "Normal": 0.995,
+      "Warning": 0.94,
+      "Critical": 0.899
+    },
+    "f1": {
+      "Normal": 0.996,
+      "Warning": 0.926,
+      "Critical": 0.921
+    },
+    "macro_f1": 0.9476456038789186,
+    "recall_critical": 0.8988095238095238,
+    "confusion_matrix": [
+      [
+        6027,
+        28,
+        0
+      ],
+      [
+        21,
+        471,
+        9
+      ],
+      [
+        0,
+        17,
+        151
+      ]
+    ],
+    "support": {
+      "Normal": 6055,
+      "Warning": 501,
+      "Critical": 168
+    }
+  }
+}

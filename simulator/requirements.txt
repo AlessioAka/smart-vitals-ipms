@@ -1,0 +1,2 @@
+# The simulator only needs numpy: that keeps its image small (see docs/adr/0003)
+numpy==2.5.3

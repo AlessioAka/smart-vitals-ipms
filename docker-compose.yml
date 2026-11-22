@@ -1,0 +1,28 @@
+# Smart Vitals. Start: docker compose up --build   Stop: docker compose down
+# Open http://localhost:8000/dashboard/login after it starts.
+services:
+  api:
+    build: {context: ., dockerfile: app/Dockerfile}
+    ports:
+      - "8000:8000"          # your port 8000 -> container port 8000
+    env_file: .env           # secrets live in .env, which Git ignores (copy .env.example)
+    volumes:
+      - vitals-data:/data    # readings and alerts survive a restart
+    healthcheck:             # is the API answering GET /health?
+      test: ["CMD", "python", "-m", "app.healthcheck"]
+      interval: 5s
+      retries: 10
+
+  simulator:
+    build: {context: ., dockerfile: simulator/Dockerfile}
+    env_file: .env
+    environment:
+      API_URL: http://api:8000   # a service's name is its address
+      MINUTES: "150"
+      FAULTS: "on"
+      EDGE: "on"
+    depends_on:
+      api: {condition: service_healthy}
+
+volumes:
+  vitals-data:

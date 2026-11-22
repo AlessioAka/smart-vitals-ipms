@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Log in · Smart Vitals{% endblock %}
+{% block content %}
+<div class="card" style="max-width:400px;margin:48px auto;padding:26px 28px">
+  <h1 style="margin-bottom:4px">Clinician log-in</h1>
+  <p class="muted" style="margin-top:0">You will see only the patients assigned to you.</p>
+  <form method="post" autocomplete="on">
+    {# The hidden CSRF token proves the form came from this site (checked in dashboard/views.py) #}
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <p><label for="cid">Clinician ID</label>
+      <input id="cid" type="text" name="clinician_id" autocomplete="username" placeholder="e.g. C01" required autofocus></p>
+    <p><label for="pw">Password</label>
+      <input id="pw" type="password" name="password" autocomplete="current-password" required></p>
+    <p style="margin-bottom:0"><button type="submit" style="width:100%;padding:9px">Log in</button></p>
+  </form>
+  <p class="tiny" style="margin:16px 0 0">Demo accounts C01–C04 share the demo password set in <code>.env</code> (DEMO_PASSWORD).</p>
+</div>
+{% endblock %}
