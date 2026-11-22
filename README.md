@@ -87,6 +87,21 @@ if it is Critical, raises one alert per episode for the assigned clinician.
    data, vital by vital, using the Population Stability Index (`src/drift.py`), so a change in the incoming data
    is noticed before it causes wrong alerts. Also available as `GET /model/health`.
 
+## Always-on demo (macOS, optional)
+
+To keep the dashboard running all the time, with live readings and without VS Code open:
+
+```bash
+bash deploy/install_macos.sh .env
+```
+
+macOS then starts `deploy/supervisor.py` at every login and restarts it if it stops. The supervisor runs the API and
+the simulator in **live mode** (`LIVE=on`: one reading a minute per patient, stamped with the real UTC clock, with the
+same faults as the tests). It restarts either process if it stops, pulls new commits from GitHub every 5 minutes
+(push, and the site updates itself), and deletes data older than 7 days. It runs from its own clone in
+`~/smart-vitals-service` (logs in `logs/`), so it occupies port 8000: to develop at the same time, start your copy with
+`PORT=8001`. It runs only while the Mac is awake. Stop it with `launchctl bootout gui/$(id -u)/com.smartvitals.ipms`.
+
 ## Limits you must be honest about
 
 - Labels come from a points rule, so the model largely re-learns that rule (see `docs/assumptions.md`).

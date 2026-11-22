@@ -21,6 +21,7 @@ Take a screenshot of each passing run for your report. The fault replays (T7–T
 | T14 | extra | drift monitoring: same data is stable, shifted data is flagged, too little data is not judged; `/model/health` needs a login | test_drift::* |
 | T15 | R5 | dashboard: only my patients, most urgent first; another clinician's patient is a 403 page; no redirect to other websites | test_security::test_overview_lists_only_my_patients_most_urgent_first, test_dashboard_errors_are_pages_and_api_errors_stay_json, test_acknowledge_cannot_redirect_to_another_website |
 | T16 | R9 | odd timestamps (time zone, space, date only) never cause a 500; negative history limit is clamped | test_api::test_timestamp_*, test_history_limit_* |
+| T17 | R2 | live mode: readings stamped with the current minute, unique ids per hour; default replay unchanged | test_live |
 
 ## Not covered by automated tests (do these by hand and screenshot)
 - `docker compose up --build`: both containers start, `/health` is 200, dashboard works.

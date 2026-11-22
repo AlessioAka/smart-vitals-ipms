@@ -123,17 +123,20 @@ def _rounded(v: str, value):
 
 
 # ------------------------------------------------------------- simulation
-def _stamp(minute: int) -> str:
-    return (datetime.fromisoformat(config.SIM_START) + timedelta(minutes=minute)).isoformat()
+def _stamp(minute: int, start: str = config.SIM_START) -> str:
+    return (datetime.fromisoformat(start) + timedelta(minutes=minute)).isoformat()
 
 
-def simulate(patients: list, minutes: int = 60, seed: int = 11, faults: bool = True):
+def simulate(patients: list, minutes: int = 60, seed: int = 11, faults: bool = True,
+             start: str = config.SIM_START, id_tag: str = ""):
     """Return (events, observed).
 
     events   - dicts {"send_at", "reading", "fault"} in ARRIVAL order (late and
                resent copies are where they would really arrive).
     observed - one dict per reading that was sent (first copy), with the truth
                label, for training and for fault tests.
+    start / id_tag - only the live mode changes these: it simulates one hour at a
+               time starting "now", and the tag keeps reading_ids unique between hours.
     """
     events, observed = [], []
     for idx, patient in enumerate(patients):
@@ -176,9 +179,9 @@ def simulate(patients: list, minutes: int = 60, seed: int = 11, faults: bool = T
                     tags.append("glitch")
 
             reading = {
-                "reading_id": f"{patient['patient_id']}-{m:04d}",
+                "reading_id": f"{patient['patient_id']}-{id_tag}{m:04d}",
                 "patient_id": patient["patient_id"],
-                "timestamp": _stamp(m),
+                "timestamp": _stamp(m, start),
                 **sent,
             }
             # Late delivery (network delay: arrives 20-45 minutes after it was measured)
