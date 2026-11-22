@@ -25,7 +25,12 @@ An AI coding assistant (Claude, Anthropic) was used in Visual Studio Code in Nov
 - add drift monitoring (`src/drift.py`, `GET /model/health`) and `docs/results/first_model.md`;
 - add explanatory comments and tests (`tests/test_drift.py` and new tests in other test files);
 - update the README, API contract, assumptions, test plan and requirements checklist;
-- write a separate explanatory Word guide for the student (not part of the submission).
+- write a separate explanatory Word guide for the student (not part of the submission);
+- add the simulator's live mode, the always-on demo service (`deploy/`) and the chart fixes for time windows and gaps
+  (`dashboard/charts.py`, `dashboard/views.py`), with their tests (`tests/test_live.py`, `tests/test_charts.py`);
+- publish the repository to GitHub at the student's request;
+- draft a presentation guide (speaking notes, charts and screenshots) to help the student explain the project.
 
-The assistant did **not** write the design-plan answers, the ADR decisions, the approaches and ethics arguments,
-the report or the presentation.
+The assistant did **not** write the design-plan answers, the ADR decisions, the approaches and ethics arguments
+or the report. The presentation guide is a draft of speaking notes: the student must put it into their own words
+and make the final slides themselves.
