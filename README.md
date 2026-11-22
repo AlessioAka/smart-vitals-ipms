@@ -35,7 +35,7 @@ python -m simulator.run_simulator    # terminal 2: plays 150 minutes of messy re
 
 Open **http://localhost:8000/dashboard/login** and log in as `C01`, `C02`, `C03` or `C04`
 (demo password: the value of `DEMO_PASSWORD` in `.env`; in the supplied file that is
-`change-me-demo-password`. With no `.env` file at all the fallback is `demo-only-change-me`).
+`smartvitalshealth`. With no `.env` file at all the fallback is `demo-only-change-me`).
 The API and the simulator both read `.env` themselves, so they always agree on the device key.
 The API listens on this computer only (`127.0.0.1`); set `HOST=0.0.0.0` to open it to your network.
 Each clinician sees only their own five patients.

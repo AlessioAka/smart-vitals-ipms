@@ -18,7 +18,8 @@
 6. ☐ **Evidence**: run `docker compose up --build`, take screenshots for every test in `docs/test-plan.md`,
    record `docker images` sizes, two-clinician demo.
 7. ☐ **Rehearse** the 10-minute demo with a timer (`docs/report/demo-plan.md`).
-8. ☐ **Push to GitHub** with the commands in the module's starter guide; commit weekly; tag `v0.1` at Week 9.
+8. ☑ **On GitHub**: https://github.com/AlessioAka/smart-vitals-ipms (public, tag `v0.1`). Keep committing and
+   pushing at least weekly; the always-on demo (README) picks up each push within 5 minutes.
 
 ## Known limits of this hand-over
 - Data and labels are simulated; metrics here are not clinical evidence.
