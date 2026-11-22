@@ -1,5 +1,5 @@
 """T17 · Live mode of the simulator (used by the always-on service in deploy/)."""
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -24,13 +24,21 @@ class _Stop(Exception):
     pass
 
 
-def test_run_live_sends_readings_stamped_with_the_current_minute(monkeypatch):
-    sent = []
+def test_run_live_starts_at_the_next_minute_and_stamps_readings_with_it(monkeypatch):
+    """A (re)started feed waits for the next whole minute, so it never repeats a minute
+    that a previous run may already have sent; then each patient gets one reading."""
+    sent, now, sleeps = [], [datetime(2026, 11, 22, 10, 0, 30, tzinfo=timezone.utc)], []
+
+    def fake_sleep(seconds):  # advance the fake clock instead of waiting; stop on the second pass
+        sleeps.append(seconds)
+        if len(sleeps) == 2:
+            raise _Stop()
+        now[0] += timedelta(seconds=seconds)
+
     monkeypatch.setattr(run_simulator, "send_with_backoff", lambda r: (sent.append(r), (201, {}))[1])
-    monkeypatch.setattr(run_simulator.time, "sleep", lambda s: (_ for _ in ()).throw(_Stop()))
-    with pytest.raises(_Stop):  # stop the endless loop after its first pass
-        run_simulator.run_live(faults=False)
-    assert len(sent) == 20  # one reading for each of the 20 patients, right now
-    stamps = {r["timestamp"] for r in sent}
-    age = datetime.now(timezone.utc).replace(tzinfo=None) - datetime.fromisoformat(stamps.pop())
-    assert not stamps and 0 <= age.total_seconds() < 120  # all stamped with the current minute (UTC)
+    monkeypatch.setattr(run_simulator.time, "sleep", fake_sleep)
+    with pytest.raises(_Stop):
+        run_simulator.run_live(faults=False, clock=lambda: now[0])
+    assert sleeps[0] == 30                                 # 10:00:30 -> wait for 10:01:00
+    assert len(sent) == 20                                 # one reading for each of the 20 patients
+    assert {r["timestamp"] for r in sent} == {"2026-11-22T10:01:00"}

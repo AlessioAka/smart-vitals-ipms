@@ -130,7 +130,7 @@ def _drain(buffer: edge.EdgeBuffer, counts: Counter) -> None:
 STALE_MINUTES = 5  # live mode: a message this overdue (the computer was asleep) is dropped
 
 
-def run_live(chunk_minutes: int = 60, faults=None, use_edge=None) -> None:
+def run_live(chunk_minutes: int = 60, faults=None, use_edge=None, clock=None) -> None:
     """LIVE=on: a feed that never ends, in real time, for the always-on service (deploy/).
 
     run() replays one fixed 150-minute session as fast as it can and stops. This instead
@@ -138,7 +138,9 @@ def run_live(chunk_minutes: int = 60, faults=None, use_edge=None) -> None:
     the moment it would really arrive, and starts the next hour when this one runs out.
     The same faults, edge checks, buffer and retries are used, so the dashboard shows
     exactly what the R9 tests cover - just live.
+    `clock` (the time now, UTC) is only replaced by the tests.
     """
+    clock = clock or (lambda: datetime.now(timezone.utc))
     faults = faults if faults is not None else os.environ.get("FAULTS", "on") == "on"
     use_edge = use_edge if use_edge is not None else os.environ.get("EDGE", "on") == "on"
     patients = json.loads(config.PATIENTS_PATH.read_text())
@@ -147,11 +149,12 @@ def run_live(chunk_minutes: int = 60, faults=None, use_edge=None) -> None:
     hour_end = None
     print(f"Live feed: {len(patients)} patients, one reading a minute each -> {API_URL}", flush=True)
     while True:
-        now = datetime.now(timezone.utc)
+        now = clock()
         if hour_end is None or now >= hour_end:
-            # Continue straight on from the last hour; after a long sleep, restart from "now".
+            # Continue straight on from the last hour. On a (re)start, or after a long sleep, begin at the
+            # NEXT whole minute: the previous run may already have sent this minute's readings.
             start = hour_end if hour_end and now - hour_end < timedelta(minutes=STALE_MINUTES) \
-                else now.replace(second=0, microsecond=0)
+                else now.replace(second=0, microsecond=0) + timedelta(minutes=1)
             events, _ = simulate(patients, minutes=chunk_minutes, seed=int(start.timestamp() // 60) % 2**31,
                                  faults=faults, start=start.replace(tzinfo=None).isoformat(),
                                  id_tag=start.strftime("%Y%m%d%H%M-"))
@@ -176,7 +179,7 @@ def run_live(chunk_minutes: int = 60, faults=None, use_edge=None) -> None:
             _drain(buffer, counts)  # the API was down: keep trying what is waiting
 
         next_due = min(queue[0][0] if queue else hour_end, hour_end)
-        time.sleep(max(0.5, min(30.0, (next_due - datetime.now(timezone.utc)).total_seconds())))
+        time.sleep(max(0.5, min(30.0, (next_due - clock()).total_seconds())))
 
 
 if __name__ == "__main__":
