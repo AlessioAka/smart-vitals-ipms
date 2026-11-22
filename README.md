@@ -100,7 +100,8 @@ the simulator in **live mode** (`LIVE=on`: one reading a minute per patient, sta
 same faults as the tests). It restarts either process if it stops, pulls new commits from GitHub every 5 minutes
 (push, and the site updates itself), and deletes data older than 7 days. It runs from its own clone in
 `~/smart-vitals-service` (logs in `logs/`), so it occupies port 8000: to develop at the same time, start your copy with
-`PORT=8001`. It runs only while the Mac is awake. Stop it with `launchctl bootout gui/$(id -u)/com.smartvitals.ipms`.
+`PORT=8001`. While it is plugged in, the Mac is kept awake; on battery, or with the lid closed, it sleeps and the
+feed pauses (it carries on from the current time when the Mac wakes). Stop it with `launchctl bootout gui/$(id -u)/com.smartvitals.ipms`.
 
 ## Limits you must be honest about
 

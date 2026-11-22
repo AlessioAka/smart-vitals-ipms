@@ -152,6 +152,10 @@ def main() -> None:
     LOGS.mkdir(exist_ok=True)
     signal.signal(signal.SIGTERM, lambda *_: (stop_all(), sys.exit(0)))  # launchctl stop / log out
     log(f"Smart Vitals service starting from {REPO} on http://127.0.0.1:{PORT}")
+    # Keep the Mac from going to sleep while it is plugged in (-s only works on mains power,
+    # so a laptop on battery still sleeps). -w: caffeinate ends by itself when this script ends.
+    if Path("/usr/bin/caffeinate").exists():
+        subprocess.Popen(["/usr/bin/caffeinate", "-s", "-w", str(os.getpid())])
     start_all()
     last_update = last_health = time.monotonic()
     last_maintenance, fails = 0.0, 0
